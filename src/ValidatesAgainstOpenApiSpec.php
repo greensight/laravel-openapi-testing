@@ -9,10 +9,10 @@ use Osteel\OpenApi\Testing\ValidatorInterface;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
-trait ValidatesAccordingToOpenApi
+trait ValidatesAgainstOpenApiSpec
 {
-    protected bool $_skipNextOpenApiRequestCheck = false;
-    protected bool $_skipNextOpenApiResponseCheck = false;
+    protected bool $_skipNextOpenApiRequestValidation = false;
+    protected bool $_skipNextOpenApiResponseValidation = false;
     protected string $_forcedOpenApiPath = '';
 
     protected function getOpenApiDocumentPath(): string
@@ -59,14 +59,14 @@ trait ValidatesAccordingToOpenApi
             $response = $this->followRedirects($response);
         }
 
-        $this->validateAccordingToOpenApi($request, $symfonyRequest, $response, $method);
+        $this->validateAgainstOpenApiSpec($request, $symfonyRequest, $response, $method);
 
         return $this->createTestResponse($response);
     }
 
-    public function validateAccordingToOpenApi(Request $request, SymfonyRequest $symfonyRequest, SymfonyResponse $response, string $method): void 
+    public function validateAgainstOpenApiSpec(Request $request, SymfonyRequest $symfonyRequest, SymfonyResponse $response, string $method): void 
     {
-        if ($this->_skipNextOpenApiRequestCheck && $this->_skipNextOpenApiResponseCheck) {
+        if ($this->_skipNextOpenApiRequestValidation && $this->_skipNextOpenApiResponseValidation) {
             return;
         }
 
@@ -80,7 +80,7 @@ trait ValidatesAccordingToOpenApi
     {
         $yamlPath = $this->getOpenApiDocumentPath();
         if (!$yamlPath) {
-            throw new LogicException('You need to override ValidatesAccordingToOpenApi::getOpenApiDocumentPath() and set correct path there');
+            throw new LogicException('You need to override ValidatesAgainstOpenApiSpec::getOpenApiDocumentPath() and set correct path there');
         }
 
         return CachedValidator::fromYaml($yamlPath);
@@ -109,10 +109,15 @@ trait ValidatesAccordingToOpenApi
         return $request->getRequestUri();
     }
 
+    protected function skipNextOpenApiValidation(): static
+    {
+        return $this->skipNextOpenApiRequestValidation()->skipNextOpenApiResponseValidation();
+    }
+
     protected function assertOpenApiRequest(SymfonyRequest $request, ValidatorInterface $validator, string $method, string $uri): void
     {
-        if ($this->_skipNextOpenApiRequestCheck) {
-            $this->_skipNextOpenApiRequestCheck = false;
+        if ($this->_skipNextOpenApiRequestValidation) {
+            $this->_skipNextOpenApiRequestValidation = false;
 
             return;
         }
@@ -120,17 +125,17 @@ trait ValidatesAccordingToOpenApi
         $this->assertTrue($validator->validate($request, $uri, $method));
     }
 
-    protected function skipNextOpenApiRequestCheck(): static
+    protected function skipNextOpenApiRequestValidation(): static
     {
-        $this->_skipNextOpenApiRequestCheck = true;
+        $this->_skipNextOpenApiRequestValidation = true;
 
         return $this;
     }
 
     protected function assertOpenApiResponse(SymfonyResponse $response, ValidatorInterface $validator, string $method, string $uri): void
     {
-        if ($this->_skipNextOpenApiResponseCheck) {
-            $this->_skipNextOpenApiResponseCheck = false;
+        if ($this->_skipNextOpenApiResponseValidation) {
+            $this->_skipNextOpenApiResponseValidation = false;
 
             return;
         }
@@ -138,9 +143,9 @@ trait ValidatesAccordingToOpenApi
         $this->assertTrue($validator->validate($response, $uri, $method));
     }
 
-    protected function skipNextOpenApiResponseCheck(): static
+    protected function skipNextOpenApiResponseValidation(): static
     {
-        $this->_skipNextOpenApiResponseCheck = true;
+        $this->_skipNextOpenApiResponseValidation = true;
 
         return $this;
     }
