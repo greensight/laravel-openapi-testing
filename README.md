@@ -1,5 +1,7 @@
 # Laravel OpenApi Testing
 
+`Deprecated, use https://github.com/ensi-platform/laravel-openapi-testing instead`
+
 This packages is based on `osteel/openapi-httpfoundation-testing` and provides `ValidatesAgainstOpenApiSpec` trait
 
 ## Installation
